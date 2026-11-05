@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>WWM MIDI Player PRO - Smart MIDI Engine v1.0.6</title>
+<style>
+  :root {
+    --bg-main: #0c0c0e;
+    --bg-card: #16161a;
+    --bg-input: #1f1f24;
+    --border-color: #27272d;
+    --text-primary: #f4f4f6;
+    --text-secondary: #9ca3af;
+    --accent: #10b981;
+    --danger: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg-main); color: var(--text-primary); padding: 16px; overflow-y: auto; }
+  .header-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+  .title { font-size: 19px; font-weight: 700; }
+  .subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .btn { padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 10px 10px; text-align: left; border-bottom: 1px solid var(--border-color); }
+  tr.active-row { background: rgba(16, 185, 129, 0.2); }
+  select { width: 100%; padding: 9px 12px; border-radius: 8px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 13px; margin: 6px 0 10px; }
+  .opt-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; font-size: 13px; }
+  .status-box { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.35); border-radius: 8px; padding: 10px 12px; font-size: 12px; margin-bottom: 12px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="header-bar">
+    <div>
+      <div class="title">🎹 WWM MIDI Player PRO v1.0.6 (Smart MIDI Engine)</div>
+      <div class="subtitle">Giải mã chuẩn file MIDI đa Track • Tự động dịch tông Nốt Đen → Nốt Trắng (21 phím) & Full Bán Cung (36 phím Đại Sư)</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input type="file" id="midiFileInput" accept=".mid,.midi" multiple style="display:none" />
+      <button class="btn" onclick="document.getElementById('midiFileInput').click()">📁 Mở Thư Mục / Nạp File .MID</button>
+      <button class="btn btn-accent" onclick="if(window.AndroidNative) AndroidNative.startFloatingOverlay()">🚀 Bật Thanh Nổi Vào Game</button>
+      <button class="btn btn-danger" onclick="if(window.AndroidNative) AndroidNative.stopFloatingOverlay()">❌ Tắt Thanh Nổi</button>
+    </div>
+  </div>
+
+  <div class="status-box" id="smartStatusBox">
+    🧠 <strong>Trạng thái Xử lý MIDI Thông Minh:</strong> Đang nạp bài <em>Lan Đình Tự (Lanting Xu)</em> • Tự động dịch tông: <strong>0 bán cung</strong> • Chế độ: <strong>21 Phím Trắng Chuẩn</strong>.
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:8px;">Danh sách Bản Nhạc MIDI (Chạm vào bài để nạp)</div>
+        <table>
+          <thead><tr><th>Tên bài MIDI</th><th>Số nốt / Nhịp</th><th>Tự động chuyển tông</th></tr></thead>
+          <tbody id="songTableBody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:6px;color:#10b981;">Cơ chế Xử lý Thông Minh mới (v1.0.6):</div>
+        <ul style="font-size:12px;color:var(--text-secondary);padding-left:18px;line-height:1.6;">
+          <li><strong>Đọc chuẩn định dạng nhị phân SMF (.mid):</strong> Đọc chính xác Tempo, trường độ và cao độ của mọi file MIDI tải từ mạng, loại bỏ kênh trống (Channel 10) gây nhiễu.</li>
+          <li><strong>Chuyển tông tự động (Adaptive Key Mapping - 21 Phím):</strong> Tự động quét toàn bộ nốt đen trong bài để dời cả bài về âm giai <strong>Đô Trưởng / La Thứ (toàn bộ phím trắng)</strong> và chuyển các nốt bán cung lẻ thành phím trắng hài hòa gần nhất.</li>
+          <li><strong>Chế độ Đại Sư (Master Mode - 36 Phím):</strong> Giữ nguyên đầy đủ 100% cả nốt trắng và nốt đen (#1, #2, #4, #5, #6) trên 3 quãng tám ứng với 36 nút cảm ứng.</li>
+          <li><strong>Thu gọn quãng tám thông minh:</strong> Mọi nốt trầm hơn Đô3 (C3) hoặc cao hơn Si5 (B5) đều được tự động gấp về đúng 3 quãng tám của game mà không bị đứt mạch giai điệu.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:8px;">Tùy chọn Biểu Diễn (Xiaomi 15)</div>
+        <label style="font-size:12px;color:var(--text-secondary);">Chế độ bàn phím cảm ứng:</label>
+        <select id="presetModeSelect" onchange="onModeSelectChange()">
+          <option value="0">21 Phím (Chỉ nốt trắng - Tự chuyển nốt đen → trắng)</option>
+          <option value="1">36 Phím Đại Sư (Đủ nốt đen & trắng - Lệch tầng #)</option>
+          <option value="2">36 Phím Đại Sư (Đủ nốt đen & trắng - Lưới 3×12)</option>
+        </select>
+
+        <div class="opt-row">
+          <span>Chế độ đại sư (Master Mode - 36 phím)</span>
+          <input type="checkbox" id="chkMaster" onchange="document.getElementById('presetModeSelect').value = this.checked ? '1' : '0'; syncOptions();" />
+        </div>
+        <div class="opt-row">
+          <span>Chuyển tông tự động (Adaptive Key Mapping)</span>
+          <input type="checkbox" id="chkAdaptive" checked onchange="syncOptions()" />
+        </div>
+        <div class="opt-row">
+          <span>Đơn giản hóa hợp âm (Chords Simplification)</span>
+          <input type="checkbox" id="chkSimplify" onchange="syncOptions()" />
+        </div>
+        <div class="opt-row">
+          <span>Ngắt nhịp theo nốt tắt (Respect Note Off)</span>
+          <input type="checkbox" id="chkNoteOff" onchange="syncOptions()" />
+        </div>
+        <div class="opt-row">
+          <span>Tự động lặp lại bài khi phát xong</span>
+          <input type="checkbox" id="chkLoop" onchange="syncOptions()" />
+        </div>
+
+        <div class="opt-row"><span>Tốc độ phát: <strong id="speedLabel">100%</strong></span></div>
+        <input type="range" id="speedRange" min="25" max="250" value="100" style="width:100%" oninput="document.getElementById('speedLabel').innerText=this.value+'%'; syncOptions();" />
+
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+          <button class="btn" onclick="if(window.AndroidNative) AndroidNative.openAccessibilitySettings()">⚙️ 1. Mở Cài đặt Trợ năng</button>
+          <button class="btn btn-accent" onclick="if(window.AndroidNative) AndroidNative.startFloatingOverlay()">🚀 2. Hiện Thanh Điều Khiển Nổi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  function buildMelodyNotes(pairs) {
+    let t = 0;
+    return pairs.map(p => {
+      const item = { startMs: t, durationMs: Math.max(40, p[1] - 30), midiNote: p[0] };
+      t += p[1];
+      return item;
+    });
+  }
+
+  const presetSongs = [
+    {
+      name: "Lan Đình Tự (Lanting Xu - Jay Chou).mid",
+      rawCount: 38,
+      chordCount: 38,
+      transpose: 0,
+      isBuiltin: true,
+      notes: buildMelodyNotes([
+        [64,300],[67,300],[69,300],[72,450],[71,150],[69,300],[71,300],[69,300],[67,300],[64,600],
+        [62,300],[64,300],[67,300],[69,450],[67,150],[64,300],[62,300],[60,300],[62,900],
+        [69,300],[72,300],[74,300],[76,450],[74,150],[72,300],[74,300],[72,300],[69,300],[67,600],
+        [64,300],[67,300],[69,450],[72,150],[71,300],[69,300],[67,300],[69,900]
+      ])
+    },
+    {
+      name: "Sứ Thanh Hoa (Blue and White Porcelain).mid",
+      rawCount: 34,
+      chordCount: 34,
+      transpose: 0,
+      isBuiltin: true,
+      notes: buildMelodyNotes([
+        [72,300],[71,300],[69,300],[67,300],[64,600],[69,300],[67,450],[64,150],[62,300],[64,300],[67,900],
+        [69,300],[71,300],[72,300],[74,300],[71,300],[69,300],[67,300],[64,300],[62,300],[64,300],[67,450],[64,150],[62,900],
+        [60,300],[62,300],[64,300],[67,300],[69,450],[67,150],[64,300],[62,300],[60,900]
+      ])
+    }
+  ];
+
+  let selectedIdx = 0;
+
+  // Nhận thông báo trực tiếp từ MainActivity khi người dùng chọn file .MID từ bộ nhớ điện thoại
+  window.onNativeMidiLoaded = function(fileName, rawCount, chordCount, shift) {
+    presetSongs.unshift({
+      name: fileName,
+      rawCount: rawCount,
+      chordCount: chordCount,
+      transpose: shift,
+      isBuiltin: false,
+      notes: null
+    });
+    selectedIdx = 0;
+    renderTable();
+    updateBanner(fileName, rawCount, chordCount, shift);
+  };
+
+  function selectSong(idx) {
+    selectedIdx = idx;
+    const s = presetSongs[idx];
+    if (s.isBuiltin && window.AndroidNative && window.AndroidNative.loadPresetSongJson) {
+      const resStr = window.AndroidNative.loadPresetSongJson(s.name, JSON.stringify(s.notes));
+      try {
+        const res = JSON.parse(resStr);
+        s.chordCount = res.chords;
+        s.transpose = res.transpose;
+      } catch(e) {}
+    }
+    syncOptions();
+  }
+
+  function onModeSelectChange() {
+    const mode = parseInt(document.getElementById('presetModeSelect').value || '0', 10);
+    document.getElementById('chkMaster').checked = (mode > 0);
+    syncOptions();
+  }
+
+  function syncOptions() {
+    const mode = parseInt(document.getElementById('presetModeSelect').value || '0', 10);
+    const adaptive = document.getElementById('chkAdaptive').checked;
+    const simplify = document.getElementById('chkSimplify').checked;
+    const noteOff = document.getElementById('chkNoteOff').checked;
+    const loop = document.getElementById('chkLoop').checked;
+    const speed = parseInt(document.getElementById('speedRange').value || '100', 10);
+
+    if (window.AndroidNative && window.AndroidNative.updateSmartOptions) {
+      const infoStr = window.AndroidNative.updateSmartOptions(mode, adaptive, simplify, noteOff, loop, speed);
+      try {
+        const info = JSON.parse(infoStr);
+        if (presetSongs[selectedIdx]) {
+          presetSongs[selectedIdx].chordCount = info.chords;
+          presetSongs[selectedIdx].transpose = info.transpose;
+        }
+        updateBanner(info.songTitle, info.rawNotes, info.chords, info.transpose);
+      } catch (e) {}
+    }
+    renderTable();
+  }
+
+  function updateBanner(title, rawNotes, chords, shift) {
+    const mode = parseInt(document.getElementById('presetModeSelect').value || '0', 10);
+    const modeName = mode === 0 ? '21 Phím Trắng (Nốt đen → Trắng)' : '36 Phím Đại Sư (Đầy đủ Đen & Trắng)';
+    const shiftStr = shift > 0 ? ('+' + shift) : String(shift);
+    document.getElementById('smartStatusBox').innerHTML =
+      `🧠 <strong>Đang nạp:</strong> <em>${title}</em> (${rawNotes} nốt / ${chords} nhịp chạm) • ` +
+      `Tự động dịch tông: <strong>${shiftStr} bán cung</strong> • Chế độ: <strong>${modeName}</strong>`;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('songTableBody');
+    tbody.innerHTML = presetSongs.map((s, idx) => {
+      const shiftStr = s.transpose > 0 ? ('+' + s.transpose) : String(s.transpose);
+      return `
+        <tr class="${idx === selectedIdx ? 'active-row' : ''}" onclick="selectSong(${idx})" style="cursor:pointer;">
+          <td>🎵 ${s.name}</td>
+          <td>${s.rawCount} nốt (${s.chordCount} nhịp)</td>
+          <td><strong style="color:#10b981">${shiftStr} bán cung</strong></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  renderTable();
+</script>
+</body>
+</html>
